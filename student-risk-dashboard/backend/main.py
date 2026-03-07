@@ -11,7 +11,7 @@ import uuid
 
 from models import Base, Student, Intervention
 from ml_model import model_instance
-from llm_service import generate_explanation
+from llm_service import generate_explanation, generate_parent_communication
 
 # DB Setup
 SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
@@ -141,6 +141,29 @@ def get_student_detail(id: int, db: Session = Depends(get_db)):
         "interventions": interventions
     }
 
+@app.get("/api/students/{id}/parent-communication")
+def get_parent_communication(id: int, language: str = "English", db: Session = Depends(get_db)):
+    student = db.query(Student).filter(Student.id == id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    if student.risk_level not in ["Medium", "High"]:
+        raise HTTPException(status_code=400, detail="Parent communication is only available for students at Medium or High risk.")
+        
+    message = generate_parent_communication(
+        student_name=student.name,
+        level=student.risk_level,
+        top_factors=student.top_factors,
+        language=language
+    )
+    
+    return {
+        "student_id": student.id,
+        "student_name": student.name,
+        "language": language,
+        "message": message
+    }
+
 @app.post("/api/students/{id}/interventions")
 def log_intervention(id: int, payload: dict, db: Session = Depends(get_db)):
     student = db.query(Student).filter(Student.id == id).first()
@@ -153,12 +176,5 @@ def log_intervention(id: int, payload: dict, db: Session = Depends(get_db)):
     db.refresh(inv)
     return inv
 
-# Mount static files and serve frontend
-app.mount("/assets", StaticFiles(directory="../frontend"), name="assets")
-
-@app.get("/{full_path:path}")
-async def serve_frontend(full_path: str):
-    # This acts as a catch-all route for single page applications
-    # So that React Router works if paths are requested directly
-    index_path = os.path.join(os.path.dirname(__file__), "../frontend/index.html")
-    return FileResponse(index_path)
+# Serve frontend static files
+app.mount("/", StaticFiles(directory="../frontend", html=True), name="frontend")

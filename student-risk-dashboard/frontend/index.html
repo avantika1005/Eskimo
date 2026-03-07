@@ -8,7 +8,8 @@
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+<link rel="stylesheet" href="index.css">
+<script src="app.jsx" defer></script>
 </head>
 
 <body class="bg-gradient-to-b from-purple-900 to-purple-300 min-h-screen text-white font-sans">
@@ -111,8 +112,8 @@ LOGIN
 <p class="text-purple-200 mb-6 font-bold">Import CSV or Excel files to update the risk engine.</p>
 
 <div class="flex flex-col md:flex-row gap-4 items-center">
-<input type="file" class="flex-1 border-4 border-dashed border-purple-300 p-6 rounded-2xl bg-white text-black font-black w-full cursor-pointer hover:border-white transition-colors">
-<button class="bg-black hover:bg-purple-900 text-white font-black px-10 py-6 rounded-2xl transition-all shadow-xl text-lg transform hover:scale-105">
+<input type="file" id="csvFileInput" class="flex-1 border-4 border-dashed border-purple-300 p-6 rounded-2xl bg-white text-black font-black w-full cursor-pointer hover:border-white transition-colors">
+<button id="uploadDataBtn" onclick="uploadData()" class="bg-black hover:bg-purple-900 text-white font-black px-10 py-6 rounded-2xl transition-all shadow-xl text-lg transform hover:scale-105">
 UPLOAD DATA
 </button>
 </div>
@@ -274,33 +275,63 @@ document.getElementById("loginPage").style.display="flex";
 }
 
 
-/* CHART */
+/* CHART & DATA SYNC */
 
 const ctx=document.getElementById('riskChart');
+let chartInstance = null;
 
-new Chart(ctx,{
-type:'doughnut',
-data:{
-labels:['High Risk','Medium Risk','Low Risk'],
-datasets:[{
-data:[5,12,18],
-backgroundColor:['#dc2626','#eab308','#16a34a'],
-hoverOffset:20,
-borderWidth:5,
-borderColor:'#ffffff'
-}]
-},
-options:{
-responsive:true,
-maintainAspectRatio:false,
-plugins:{
-legend:{
-position:'bottom',
-labels:{font:{weight:'900',size:14},color:'#1e1b4b'}
+async function syncDashboardData() {
+    try {
+        const response = await fetch('http://localhost:8000/api/students');
+        const students = await response.json();
+        
+        const highCount = students.filter(s => s.risk_level === 'High').length;
+        const mediumCount = students.filter(s => s.risk_level === 'Medium').length;
+        const lowCount = students.filter(s => s.risk_level === 'Low').length;
+
+        // Update UI counters
+        document.querySelectorAll('.md\\:col-span-1 p').forEach((p, idx) => {
+            if (idx === 0) p.innerText = highCount;
+            if (idx === 1) p.innerText = mediumCount;
+            if (idx === 2) p.innerText = lowCount;
+        });
+
+        // Update Chart
+        if (chartInstance) {
+            chartInstance.data.datasets[0].data = [highCount, mediumCount, lowCount];
+            chartInstance.update();
+        } else {
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['High Risk', 'Medium Risk', 'Low Risk'],
+                    datasets: [{
+                        data: [highCount, mediumCount, lowCount],
+                        backgroundColor: ['#dc2626', '#eab308', '#16a34a'],
+                        hoverOffset: 20,
+                        borderWidth: 5,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { font: { weight: '900', size: 14 }, color: '#1e1b4b' }
+                        }
+                    }
+                }
+            });
+        }
+    } catch (error) {
+        console.error("Dashboard sync error:", error);
+    }
 }
-}
-}
-});
+
+// Initial sync
+syncDashboardData();
 
 
 /* ADMIN DROPDOWN */
