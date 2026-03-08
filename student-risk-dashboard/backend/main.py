@@ -74,6 +74,9 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
         raise HTTPException(status_code=400, detail="Missing required columns in CSV")
         
     for index, row in df.iterrows():
+        school_name = row.get('School Name', 'Kanchipuram Govt Model School')
+        block_name = row.get('Block Name', 'Kanchipuram Central')
+        
         student_data = {
             'attendance_pct': float(row['Attendance Percentage']),
             'latest_exam_score': float(row['Latest Exam Score']),
@@ -124,6 +127,8 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
             db.add(student)
             
         student.name = row['Student Name']
+        student.school_name = school_name
+        student.block_name = block_name
         student.grade_class = str(row['Class / Grade'])
         student.attendance_pct = student_data['attendance_pct']
         student.latest_exam_score = student_data['latest_exam_score']
@@ -332,6 +337,95 @@ def get_intervention_analytics(db: Session = Depends(get_db)):
         })
         
     return sorted(result, key=lambda x: x['success_rate'], reverse=True)
+
+@app.get("/api/analytics/heatmap")
+def get_district_heatmap(db: Session = Depends(get_db)):
+    # Group students by school and evaluate metrics
+    students = db.query(Student).all()
+    
+    # Simple hardcoded dict of coordinates for demo visually distinct markers
+    # In a real app, this would come from a School table or Geocoding API.
+    mock_coordinates = {
+        "Kanchipuram Govt Model School": {"lat": 12.8341735, "lng": 79.7036402},
+        "Walajabad Panchayat Union School": {"lat": 12.7937, "lng": 79.8093},
+        "Sriperumbudur Excellence Academy": {"lat": 12.967, "lng": 79.948},
+        "Uthiramerur Higher Secondary": {"lat": 12.613, "lng": 79.761},
+        "Kundrathur Zilla Parishad School": {"lat": 12.997, "lng": 80.098}
+    }
+    
+    school_metrics = {}
+    
+    for s in students:
+        s_name = s.school_name
+        b_name = s.block_name
+        
+        if s_name not in school_metrics:
+            coords = mock_coordinates.get(s_name, {"lat": 12.83, "lng": 79.7})
+            school_metrics[s_name] = {
+                "school_name": s_name,
+                "block_name": b_name,
+                "lat": coords["lat"],
+                "lng": coords["lng"],
+                "total_students": 0,
+                "high_risk_count": 0,
+                "total_risk_score": 0,
+                "total_attendance": 0,
+                "total_exam": 0,
+                "common_factors": {}
+            }
+            
+        metrics = school_metrics[s_name]
+        metrics["total_students"] += 1
+        metrics["total_risk_score"] += s.risk_score
+        metrics["total_attendance"] += s.attendance_pct
+        metrics["total_exam"] += s.latest_exam_score
+        
+        if s.risk_level == "High":
+            metrics["high_risk_count"] += 1
+            
+        if s.top_factors:
+            factors = [f.strip() for f in s.top_factors.split(',')]
+            for f in factors:
+                metrics["common_factors"][f] = metrics["common_factors"].get(f, 0) + 1
+                
+    result = []
+    
+    for s_name, data in school_metrics.items():
+        total = data["total_students"]
+        if total > 0:
+            avg_risk = data["total_risk_score"] / total
+            avg_att = data["total_attendance"] / total
+            avg_exam = data["total_exam"] / total
+            high_risk_pct = (data["high_risk_count"] / total) * 100
+            
+            # Find top 2 most common factors
+            sorted_factors = sorted(data["common_factors"].items(), key=lambda item: item[1], reverse=True)
+            top_factors = [f[0] for f in sorted_factors[:2]]
+            
+            # Determine overall risk concentration string based on heatmap requirements
+            if high_risk_pct >= 20: # High Concentration
+                concentration = "High"
+            elif high_risk_pct >= 10: # Moderate Concentration
+                concentration = "Moderate"
+            else:
+                concentration = "Low"
+                
+            result.append({
+                "school_name": s_name,
+                "block_name": data["block_name"],
+                "lat": data["lat"],
+                "lng": data["lng"],
+                "total_students": total,
+                "high_risk_count": data["high_risk_count"],
+                "high_risk_pct": round(high_risk_pct, 1),
+                "avg_risk_score": round(avg_risk, 1),
+                "avg_attendance": round(avg_att, 1),
+                "avg_exam": round(avg_exam, 1),
+                "risk_concentration": concentration,
+                "top_factors": top_factors
+            })
+            
+    return result
 
 # Serve frontend static files
 app.mount("/", StaticFiles(directory="../frontend", html=True), name="frontend")

@@ -9,6 +9,8 @@ class Student(Base):
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(String, unique=True, index=True)
     name = Column(String, index=True)
+    school_name = Column(String, index=True, default="Kanchipuram Govt Model School")
+    block_name = Column(String, index=True, default="Kanchipuram Central")
     grade_class = Column(String)
     attendance_pct = Column(Float)
     latest_exam_score = Column(Float)
