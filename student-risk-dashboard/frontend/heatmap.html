@@ -19,7 +19,7 @@
 <header class="p-6 bg-opacity-40 relative">
     <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0">
         <div>
-            <h1 class="text-3xl md:text-4xl font-black tracking-tighter uppercase">District Analytics Heatmap</h1>
+            <h1 class="text-3xl md:text-4xl font-black tracking-tighter uppercase">State Analytics Heatmap</h1>
             <p class="text-purple-200 mt-2 font-extrabold italic uppercase">Geographic Visualization of Dropout Risk</p>
         </div>
         <div class="flex gap-4">
@@ -47,6 +47,14 @@
                 <h2 class="text-xl font-black text-purple-950 uppercase mb-4">Focus Area Filters</h2>
                 
                 <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Select District</label>
+                        <select id="districtFilter" class="w-full p-3 border rounded-lg font-bold bg-purple-50 text-purple-900">
+                            <option value="All">All Districts</option>
+                            <!-- populated by JS -->
+                        </select>
+                    </div>
+
                     <div>
                         <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Select Block</label>
                         <select id="blockFilter" class="w-full p-3 border rounded-lg font-bold bg-purple-50 text-purple-900">

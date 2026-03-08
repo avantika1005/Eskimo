@@ -11,6 +11,7 @@ class Student(Base):
     name = Column(String, index=True)
     school_name = Column(String, index=True, default="Kanchipuram Govt Model School")
     block_name = Column(String, index=True, default="Kanchipuram Central")
+    district_name = Column(String, index=True, default="Kanchipuram")
     grade_class = Column(String)
     attendance_pct = Column(Float)
     latest_exam_score = Column(Float)

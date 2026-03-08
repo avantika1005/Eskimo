@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         allSchoolData = await res.json();
         
         initMap();
-        populateBlockFilter();
+        populateFilters();
         renderMarkers(allSchoolData);
 
         document.getElementById('loadingState').classList.add('hidden');
@@ -27,8 +27,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function initMap() {
-    // Center roughly on Kanchipuram
-    map = L.map('map').setView([12.83, 79.70], 10);
+    // Center roughly on Tamil Nadu State
+    map = L.map('map').setView([11.1271, 78.6569], 7);
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
@@ -76,7 +76,7 @@ function updateSidePanel(school) {
     document.getElementById('schoolDetailsPanel').classList.remove('hidden');
 
     document.getElementById('panelSchoolName').textContent = school.school_name;
-    document.getElementById('panelBlockName').textContent = school.block_name + " Block";
+    document.getElementById('panelBlockName').textContent = school.district_name + " District, " + school.block_name + " Block";
     document.getElementById('panelTotal').textContent = school.total_students;
     document.getElementById('panelHighRisk').textContent = `${school.high_risk_count} (${school.high_risk_pct}%)`;
     document.getElementById('panelAvgRisk').textContent = school.avg_risk_score;
@@ -97,27 +97,122 @@ function updateSidePanel(school) {
     }
 }
 
-function populateBlockFilter() {
-    const filter = document.getElementById('blockFilter');
-    const blocks = new Set(allSchoolData.map(s => s.block_name));
+function populateFilters() {
+    // Populate Districts
+    const districtFilter = document.getElementById('districtFilter');
     
-    blocks.forEach(b => {
+    // Complete list of all 38 districts in Tamil Nadu
+    const allTNDistricts = [
+        "Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore", 
+        "Dharmapuri", "Dindigul", "Erode", "Kallakurichi", "Kanchipuram", 
+        "Kanyakumari", "Karur", "Krishnagiri", "Madurai", "Mayiladuthurai", 
+        "Nagapattinam", "Namakkal", "Nilgiris", "Perambalur", "Pudukkottai", 
+        "Ramanathapuram", "Ranipet", "Salem", "Sivaganga", "Tenkasi", 
+        "Thanjavur", "Theni", "Thoothukudi", "Tiruchirappalli", "Tirunelveli", 
+        "Tirupathur", "Tiruppur", "Tiruvallur", "Tiruvannamalai", "Tiruvarur", 
+        "Vellore", "Viluppuram", "Virudhunagar"
+    ];
+
+    const tnBlocksData = {
+        "Ariyalur": ["Andimadam", "Ariyalur", "Jayankondam", "Sendurai", "T. Palur", "Thirumanur"],
+        "Chengalpattu": ["Acharapakkam", "Chithamur", "Kattankolathur", "Lathur", "Madhuranthakam", "St Thomas Mount", "Tirukalukundram", "Tiruporur"],
+        "Chennai": ["Alandur", "Adyar", "Anna Nagar", "Chennai City", "Egmore", "Guindy", "Kodambakkam", "Mylapore", "Nungambakkam", "Perambur", "Purasaiwakkam", "Royapuram", "Shenoy Nagar", "Tondiarpet", "Triplicane", "Velachery", "Zonal"],
+        "Coimbatore": ["Anaimalai", "Annur", "Coimbatore North", "Coimbatore South", "Karamadai", "Kinathukadavu", "Madukkarai", "Mettupalayam", "Perur", "Pollachi North", "Pollachi South", "Sarcarsamakulam", "Sultanpet", "Sulur", "Thondamuthur"],
+        "Cuddalore": ["Annagramam", "Bhuvanagiri", "Cuddalore", "Kammapuram", "Kattumannarkoil", "Keerapalayam", "Komaratchi", "Kurinjipadi", "Mangalur", "Nallur", "Panruti", "Parangipettai", "Srimushnam", "Vridhachalam"],
+        "Dharmapuri": ["Dharmapuri", "Harur", "Karimangalam", "Morappur", "Nallampalli", "Palacode", "Pappireddipatti", "Pennagaram"],
+        "Dindigul": ["Athoor", "Batlagundu", "Dindigul", "Guziliamparai", "Kodaikanal", "Natham", "Nilakottai", "Oddanchatram", "Palani", "Reddiarchatram", "Sanarpatti", "Shanarpatti", "Thoppampatti", "Vadamadurai", "Vedasandur"],
+        "Erode": ["Ammapet", "Anthiyur", "Bhavani", "Bhavanisagar", "Chennimalai", "Erode", "Gobichettipalayam", "Kodumudi", "Modakkurichi", "Nambiyur", "Perundurai", "Sathyamangalam", "Talavadi", "T N Palayam"],
+        "Kallakurichi": ["Chinnasalem", "Kallakurichi", "Kalrayan Hills", "Rishivandiyam", "Sankarapuram", "Thirunavalur", "Thirukovilur", "Thiagadurgam", "Ulundurpet"],
+        "Kanchipuram": ["Kanchipuram Central", "Kundrathur", "Sriperumbudur", "Uthiramerur", "Walajabad"],
+        "Kanyakumari": ["Agastheeswaram", "Killiyur", "Kurunthencode", "Melpuram", "Munchira", "Rajakkamangalam", "Thackalai", "Thiruvattar", "Thovalai"],
+        "Karur": ["Aravakurichi", "K.Paramathi", "Kadavur", "Karur", "Krihsnarayapuram", "Kulithalai", "Thanthoni", "Thogaimalai"],
+        "Krishnagiri": ["Bargur", "Hosur", "Kaveripattinam", "Kelamangalam", "Krishnagiri", "Mathur", "Shoolagiri", "Thally", "Uthangarai", "Veppanapalli"],
+        "Madurai": ["Alanganallur", "Chellampatti", "Kallikudi", "Kottampatti", "Madurai East", "Madurai West", "Melur", "Sedapatti", "T.Kallupatti", "Thirumangalam", "Thiruparankundram", "Usilampatti", "Vadipatti"],
+        "Mayiladuthurai": ["Kollidam", "Kuttalam", "Mayiladuthurai", "Sirkali", "Sembanarkoil"],
+        "Nagapattinam": ["Keelaiyur", "Kilvelur", "Nagapattinam", "Thalainayar", "Thirumarugal", "Vedaranyam"],
+        "Namakkal": ["Elachipalayam", "Erumaipatti", "Kabilarmalai", "Kolli Hills", "Mallasamudram", "Mohanur", "Namakkal", "Pallipalayam", "Paramathi", "Puduchatram", "Rasipuram", "Sendamangalam", "Tiruchengode", "Vennandur"],
+        "Nilgiris": ["Coonoor", "Gudalur", "Kotagiri", "Ooty"],
+        "Perambalur": ["Alathur", "Perambalur", "Veppanthattai", "Veppur"],
+        "Pudukkottai": ["Annavasal", "Aranthangi", "Arimalam", "Avudayarkoil", "Gandarvakottai", "Iluppur", "Karambakkudi", "Kunnandarkoil", "Manamelkudi", "Ponnamaravathi", "Pudukkottai", "Thirumayam", "Viralimalai"],
+        "Ramanathapuram": ["Bogalur", "Kadaladi", "Kamuthi", "Mandapam", "Mudukulathur", "Nainarkoil", "Paramakudi", "Ramanathapuram", "R.S.Mangalam", "Tiruvadanai", "Thiruppullani"],
+        "Ranipet": ["Arakkonam", "Arcot", "Kaveripakkam", "Nemili", "Sholingur", "Timiri", "Walajah"],
+        "Salem": ["Ayothiapattinam", "Attur", "Edapady", "Gangavalli", "Kadayampatti", "Kolathur", "Konganapuram", "Macdonalds Choultry", "Mecheri", "Nangavalli", "Omalur", "Panamarathupatty", "Pethanaickenpalayam", "Salem Rural", "Sankari", "Thalaivasal", "Taramangalam", "Valapady", "Veerapandy", "Yercaud"],
+        "Sivaganga": ["Devakottai", "Ilayangudi", "Kalayarkoil", "Kallal", "Kannangudi", "Manamadurai", "Sakkottai", "Singampunari", "Sivaganga", "Thiruppuvanam", "Tirupathur"],
+        "Tenkasi": ["Alangulam", "Kadayanallur", "Keezhapavur", "Kuruvikulam", "Melaneelithanallur", "Sankarankoil", "Shencottai", "Tenkasi", "Vasudevanallur"],
+        "Thanjavur": ["Ammapettai", "Budalur", "Kumbakonam", "Madukkur", "Orathanadu", "Papanasam", "Pattukkottai", "Peravurani", "Sethubhavachatram", "Thanjavur", "Thirupanandal", "Thiruvaiyaru", "Thiruvidaimarudur"],
+        "Theni": ["Andipatti", "Bodinayakanur", "Chinnamanoor", "Cumbum", "K.Myladumparai", "Periyakulam", "Thevaram", "Uthamapalayam"],
+        "Thoothukudi": ["Alwarthirunagari", "Karungulam", "Kayathar", "Kovilpatti", "Ottapidaram", "Pudukkottai", "Sathankulam", "Srivaikundam", "Thoothukudi", "Tiruchendur", "Udangudi", "Vilathikulam"],
+        "Tiruchirappalli": ["Andanallur", "Lalgudi", "Manachanallur", "Manapparai", "Manikandam", "Marungapuri", "Musiri", "Pullambadi", "Thathaiyangarpet", "Thiruverumbur", "Thottiyam", "Turaiyur", "Uppiliyapuram", "Vaiyampatti"],
+        "Tirunelveli": ["Ambasamudram", "Cheranmahadevi", "Kalakadu", "Manur", "Nanguneri", "Palayamkottai", "Pappakudi", "Radhapuram", "Valliyur"],
+        "Tirupathur": ["Alangayam", "Jolarpet", "Kandili", "Madhanur", "Natrampalli", "Tirupathur"],
+        "Tiruppur": ["Avanashi", "Dharapuram", "Gudimangalam", "Kangeyam", "Kundadam", "Madathukulam", "Moolanur", "Palladam", "Pongalur", "Tiruppur", "Udumalaipettai", "Uthukuli", "Vellakoil"],
+        "Tiruvallur": ["Ellapuram", "Gummidipoondi", "Kadambathur", "Minjur", "Pallipattu", "Poonamallee", "Poondi", "Pulianthope", "R.K.Pet", "Sholavaram", "Thiruvalangadu", "Tiruvallur", "Villivakkam"],
+        "Tiruvannamalai": ["Anakavur", "Arani", "Chengam", "Chetpet", "Cheyyar", "Dusi", "Jawadhu Hills", "Kalasapakkam", "Kilpennathur", "Pernamallur", "Polur", "Pudupalayam", "Thandarampet", "Thellar", "Thiruvannamalai", "Thurinjapuram", "Vandavasi", "West Arani"],
+        "Tiruvarur": ["Kodavasal", "Koradacheri", "Kottur", "Mannargudi", "Muthupet", "Nannilam", "Needamangalam", "Thirumakkottai", "Thiruthuraipoondi", "Tiruvarur"],
+        "Vellore": ["Anaicut", "Gudiyatham", "K.V.Kuppam", "Katpadi", "Kaniyambadi", "Pernambut", "Vellore"],
+        "Viluppuram": ["Gingee", "Kanai", "Kandamangalam", "Koliyanur", "Mailam", "Marakkanam", "Melmalaiyanur", "Mugaiyur", "Olakkur", "Thiruvennainallur", "Vaanur", "Vikkiravandi", "Viluppuram"],
+        "Virudhunagar": ["Aruppukottai", "Kariapatti", "Narikkudi", "Rajapalayam", "Sattur", "Sivakasi", "Srivilliputhur", "Tiruchuli", "Vembakottai", "Virudhunagar", "Watrap"]
+    };
+
+    allTNDistricts.forEach(d => {
         const opt = document.createElement('option');
-        opt.value = b;
-        opt.textContent = b;
-        filter.appendChild(opt);
+        opt.value = d;
+        opt.textContent = d;
+        districtFilter.appendChild(opt);
     });
 
-    filter.addEventListener('change', applyFilters);
+    // Function to populate blocks based on selected district
+    const populateBlocks = () => {
+        const blockFilter = document.getElementById('blockFilter');
+        blockFilter.innerHTML = '<option value="All">All Blocks</option>'; // Reset
+        
+        const selectedDistrict = districtFilter.value;
+        let blocksToAdd = [];
+
+        if (selectedDistrict === 'All') {
+            // Add all blocks from all districts
+            Object.values(tnBlocksData).forEach(blocks => {
+                blocksToAdd = blocksToAdd.concat(blocks);
+            });
+            // Sort them alphabetically for easier reading
+            blocksToAdd.sort();
+        } else {
+            // Add blocks just for this district
+            blocksToAdd = tnBlocksData[selectedDistrict] || [];
+        }
+
+        blocksToAdd.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b;
+            opt.textContent = b;
+            blockFilter.appendChild(opt);
+        });
+    };
+
+    // Initial population of blocks (All Blocks)
+    populateBlocks();
+
+    // Re-populate blocks when district changes, then apply normal filters
+    districtFilter.addEventListener('change', () => {
+        populateBlocks();
+        applyFilters();
+    });
+
+    blockFilter.addEventListener('change', applyFilters);
     document.getElementById('riskFilter').addEventListener('change', applyFilters);
 }
 
 function applyFilters() {
+    const districtFilter = document.getElementById('districtFilter').value;
     const blockFilter = document.getElementById('blockFilter').value;
     const riskFilter = document.getElementById('riskFilter').value;
 
     let filtered = allSchoolData;
 
+    if (districtFilter !== 'All') {
+        filtered = filtered.filter(s => s.district_name === districtFilter);
+    }
+    
     if (blockFilter !== 'All') {
         filtered = filtered.filter(s => s.block_name === blockFilter);
     }

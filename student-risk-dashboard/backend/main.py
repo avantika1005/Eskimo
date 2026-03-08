@@ -76,6 +76,7 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
     for index, row in df.iterrows():
         school_name = row.get('School Name', 'Kanchipuram Govt Model School')
         block_name = row.get('Block Name', 'Kanchipuram Central')
+        district_name = row.get('District Name', 'Kanchipuram')
         
         student_data = {
             'attendance_pct': float(row['Attendance Percentage']),
@@ -129,6 +130,7 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
         student.name = row['Student Name']
         student.school_name = school_name
         student.block_name = block_name
+        student.district_name = district_name
         student.grade_class = str(row['Class / Grade'])
         student.attendance_pct = student_data['attendance_pct']
         student.latest_exam_score = student_data['latest_exam_score']
@@ -343,14 +345,21 @@ def get_district_heatmap(db: Session = Depends(get_db)):
     # Group students by school and evaluate metrics
     students = db.query(Student).all()
     
-    # Simple hardcoded dict of coordinates for demo visually distinct markers
+    # Simple hardcoded dict of coordinates for demo visually distinct markers across Tamil Nadu
     # In a real app, this would come from a School table or Geocoding API.
     mock_coordinates = {
         "Kanchipuram Govt Model School": {"lat": 12.8341735, "lng": 79.7036402},
         "Walajabad Panchayat Union School": {"lat": 12.7937, "lng": 79.8093},
         "Sriperumbudur Excellence Academy": {"lat": 12.967, "lng": 79.948},
         "Uthiramerur Higher Secondary": {"lat": 12.613, "lng": 79.761},
-        "Kundrathur Zilla Parishad School": {"lat": 12.997, "lng": 80.098}
+        "Kundrathur Zilla Parishad School": {"lat": 12.997, "lng": 80.098},
+        "Chennai Public School": {"lat": 13.0827, "lng": 80.2707}, # Chennai
+        "Madurai Central School": {"lat": 9.9252, "lng": 78.1198}, # Madurai
+        "Coimbatore Excellence": {"lat": 11.0168, "lng": 76.9558}, # Coimbatore
+        "Salem Govt School": {"lat": 11.6643, "lng": 78.1460},     # Salem
+        "Trichy Model School": {"lat": 10.7905, "lng": 78.7047},   # Tiruchirappalli
+        "Tirunelveli High School": {"lat": 8.7139, "lng": 77.7567},# Tirunelveli
+        "Vellore Heritage School": {"lat": 12.9165, "lng": 79.1325} # Vellore
     }
     
     school_metrics = {}
@@ -358,12 +367,14 @@ def get_district_heatmap(db: Session = Depends(get_db)):
     for s in students:
         s_name = s.school_name
         b_name = s.block_name
+        d_name = s.district_name
         
         if s_name not in school_metrics:
-            coords = mock_coordinates.get(s_name, {"lat": 12.83, "lng": 79.7})
+            coords = mock_coordinates.get(s_name, {"lat": 13.0, "lng": 80.0}) # Default near Chennai
             school_metrics[s_name] = {
                 "school_name": s_name,
                 "block_name": b_name,
+                "district_name": d_name,
                 "lat": coords["lat"],
                 "lng": coords["lng"],
                 "total_students": 0,
@@ -413,6 +424,7 @@ def get_district_heatmap(db: Session = Depends(get_db)):
             result.append({
                 "school_name": s_name,
                 "block_name": data["block_name"],
+                "district_name": data["district_name"],
                 "lat": data["lat"],
                 "lng": data["lng"],
                 "total_students": total,
