@@ -29,5 +29,16 @@ class Intervention(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey('students.id'))
-    date = Column(String)
-    action = Column(String)
+
+    # Core metadata about the intervention
+    date = Column(String)                        # stored as ISO date string (YYYY-MM-DD)
+    intervention_type = Column(String)           # e.g. Home Visit, Counselling
+    teacher_name = Column(String)
+    notes = Column(String, nullable=True)
+
+    # Baseline snapshot of student indicators at the time of logging
+    baseline_attendance_pct = Column(Float)
+    baseline_exam_score = Column(Float)
+    baseline_midday_meal = Column(Boolean)
+    baseline_meal_participation_pct = Column(Float)
+    baseline_risk_score = Column(Float)
