@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Student Details - AI Early Warning System</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="index.css">
 <script src="detail.js" defer></script>
 </head>
@@ -33,6 +34,20 @@
     </div>
 
     <div id="studentDetail" class="hidden space-y-6">
+        <!-- RISK ALERT SECTION -->
+        <div id="riskAlert" class="hidden">
+            <div id="alertContainer" class="flex items-center gap-4 p-5 rounded-2xl border-2 shadow-lg animate-pulse">
+                <div id="alertIcon" class="text-4xl">⚠️</div>
+                <div class="flex-1">
+                    <h3 id="alertHeading" class="text-xl font-black uppercase tracking-tight">HIGH RISK PROFILE DETECTED</h3>
+                    <p id="alertMessage" class="text-sm font-bold opacity-90"></p>
+                </div>
+                <div class="hidden md:block">
+                    <span class="px-4 py-2 bg-white/20 rounded-xl font-black text-xs uppercase tracking-widest backdrop-blur-sm">URGENT ATTENTION</span>
+                </div>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Left Side: Basic Info -->
             <div class="md:col-span-1 bg-white p-8 rounded-2xl shadow-2xl border-t-8 border-purple-700 text-black">
@@ -85,6 +100,89 @@
                 </div>
                 <div id="no_explanation" class="hidden text-gray-500 font-bold italic py-4">
                     Risk level is Low. No detailed explanation required.
+                </div>
+            </div>
+        </div>
+
+        <!-- COHORT COMPARISON SECTION -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="comparisonSection">
+            <!-- Table View -->
+            <div class="bg-white p-8 rounded-2xl shadow-2xl border-t-8 border-indigo-600 text-black">
+                <h2 class="text-2xl font-black mb-6 text-indigo-950 uppercase flex items-center gap-2">
+                    <span>📊</span> COHORT BENCHMARKS
+                </h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b-2 border-indigo-50">
+                                <th class="py-3 px-2 font-black text-indigo-400 uppercase text-xs">Metric</th>
+                                <th class="py-3 px-2 font-black text-indigo-900 uppercase text-xs">Student</th>
+                                <th class="py-3 px-2 font-black text-indigo-900 uppercase text-xs">Class Avg</th>
+                                <th class="py-3 px-2 font-black text-indigo-900 uppercase text-xs">Benchmark</th>
+                            </tr>
+                        </thead>
+                        <tbody id="comparisonTableBody">
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-6 flex gap-4 text-[10px] font-black uppercase tracking-widest justify-center">
+                    <span class="flex items-center gap-1 text-green-600">🟢 EXCELLENT</span>
+                    <span class="flex items-center gap-1 text-yellow-600">🟡 AVERAGE</span>
+                    <span class="flex items-center gap-1 text-red-600">🔴 AT RISK</span>
+                </div>
+            </div>
+
+            <!-- Chart View -->
+            <div class="bg-white p-8 rounded-2xl shadow-2xl border-t-8 border-purple-600 text-black flex flex-col">
+                <h2 class="text-2xl font-black mb-6 text-purple-950 uppercase flex items-center gap-2">
+                    <span>📈</span> VISUAL COMPARISON
+                </h2>
+                <div class="flex-1 relative min-h-[250px]">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- PARENT COMMUNICATION GENERATOR -->
+        <div id="parentCommSection" class="hidden bg-white p-8 rounded-2xl shadow-2xl border-t-8 border-green-600 text-black">
+            <h2 class="text-2xl font-black mb-6 text-green-950 uppercase flex items-center gap-2">
+                <span>✉️</span> Parent Communication Generator
+            </h2>
+            
+            <div class="flex flex-col md:flex-row gap-4 items-end mb-6">
+                <div class="flex-1">
+                    <label class="block text-xs font-black text-gray-400 uppercase mb-2">Select Language</label>
+                    <select id="commLanguage" class="w-full p-3 border-2 border-gray-100 rounded-xl font-bold bg-gray-50 focus:border-green-500 outline-none transition-all">
+                        <option value="English">English</option>
+                        <option value="Tamil">Tamil (தமிழ்)</option>
+                        <option value="Hindi">Hindi (हिन्दी)</option>
+                    </select>
+                </div>
+                <button onclick="generateParentComm()" id="generateBtn" class="bg-green-600 hover:bg-green-700 text-white font-black px-8 py-3.5 rounded-xl shadow-lg transform hover:scale-105 transition-all w-full md:w-auto">
+                    GENERATE DRAFT
+                </button>
+            </div>
+
+            <div id="commOutputContainer" class="hidden space-y-4">
+                <div class="relative">
+                    <textarea id="commOutput" readonly class="w-full h-48 p-6 bg-gray-50 border-2 border-dashed border-green-200 rounded-2xl font-bold text-gray-700 leading-relaxed outline-none resize-none"></textarea>
+                    <div class="absolute top-4 right-4 text-green-200">
+                        <span class="text-2xl font-black opacity-20 uppercase tracking-tighter">AI Draft</span>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end">
+                    <button onclick="copyToClipboard()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-6 py-3 rounded-xl shadow-md flex items-center gap-2 transform hover:scale-105 transition-all">
+                        <span>📋</span> COPY TO CLIPBOARD
+                    </button>
+                </div>
+            </div>
+
+            <div id="commLoading" class="hidden flex items-center justify-center p-12">
+                <div class="flex flex-col items-center gap-4">
+                    <div class="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                    <p class="font-black text-green-700 animate-pulse uppercase tracking-widest text-sm">Drafting Message...</p>
                 </div>
             </div>
         </div>

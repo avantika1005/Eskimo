@@ -25,8 +25,8 @@ function uploadData() {
     .then(res => {
         if (res.ok) {
             alert("Student data uploaded and processed successfully!");
-            // Redirect to the student listing page
-            window.location.href = "students.html";
+            // Open student list in a new window/tab as requested
+            window.open("students.html", "_blank");
         } else {
             return res.json().then(data => {
                 alert("Upload failed: " + (data.detail || "Unknown error"));

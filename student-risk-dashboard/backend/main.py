@@ -47,6 +47,11 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="Only CSV files allowed")
         
+    # Clear existing data to show only current CSV students
+    db.query(Intervention).delete()
+    db.query(Student).delete()
+    db.commit()
+
     content = await file.read()
     s = str(content, 'utf-8')
     data = StringIO(s)
@@ -73,6 +78,18 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
         # ML Prediction
         pred = model_instance.predict_risk(student_data)
         
+        # Calculate current class averages for context
+        all_students = db.query(Student).all()
+        if all_students:
+            avg_att = sum(s.attendance_pct for s in all_students) / len(all_students)
+            avg_score = sum(s.latest_exam_score for s in all_students) / len(all_students)
+            avg_dist = sum(s.distance_km for s in all_students) / len(all_students)
+        else:
+            avg_att, avg_score, avg_dist = student_data['attendance_pct'], student_data['latest_exam_score'], student_data['distance_km']
+
+        class_avg = {"attendance": round(avg_att, 1), "score": round(avg_score, 1), "distance": round(avg_dist, 1)}
+        benchmarks = {"attendance": 88, "score": 74, "distance": 2.5}
+
         # LLM Explanation
         explanation = generate_explanation(
             student_name=row['Student Name'],
@@ -80,7 +97,9 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
             level=pred['level'],
             top_factors=pred['top_factors'],
             attendance=student_data['attendance_pct'],
-            exams=student_data['latest_exam_score']
+            exams=student_data['latest_exam_score'],
+            class_avg=class_avg,
+            benchmarks=benchmarks
         )
         
         # Update or create student
@@ -136,9 +155,23 @@ def get_student_detail(id: int, db: Session = Depends(get_db)):
         
     interventions = db.query(Intervention).filter(Intervention.student_id == student.id).all()
     
+    # Calculate cohort comparisons
+    all_students = db.query(Student).all()
+    avg_att = sum(s.attendance_pct for s in all_students) / len(all_students) if all_students else 0
+    avg_score = sum(s.latest_exam_score for s in all_students) / len(all_students) if all_students else 0
+    avg_dist = sum(s.distance_km for s in all_students) / len(all_students) if all_students else 0
+
+    comparison = {
+        "metrics": ["Attendance", "Exam Score", "Distance"],
+        "student": [student.attendance_pct, student.latest_exam_score, student.distance_km],
+        "class_avg": [round(avg_att, 1), round(avg_score, 1), round(avg_dist, 1)],
+        "benchmarks": [88, 74, 2.5]
+    }
+
     return {
         "student": student,
-        "interventions": interventions
+        "interventions": interventions,
+        "comparison": comparison
     }
 
 @app.get("/api/students/{id}/parent-communication")

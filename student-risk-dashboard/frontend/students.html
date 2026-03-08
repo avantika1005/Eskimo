@@ -27,20 +27,37 @@
 <div class="max-w-7xl mx-auto p-6">
     <div class="bg-white rounded-2xl shadow-2xl overflow-hidden border-t-8 border-purple-700 text-black">
         <div class="p-8">
-            <h2 class="text-2xl font-black mb-6 text-purple-950 uppercase tracking-tight">Processed Student Records</h2>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                <h2 class="text-2xl font-black text-purple-950 uppercase tracking-tight">Processed Student Records</h2>
+                
+                <div class="flex items-center gap-3 bg-purple-50 p-2 rounded-2xl border border-purple-100 w-full md:w-auto">
+                    <label class="text-xs font-black text-purple-400 uppercase ml-2">Sort By:</label>
+                    <select id="sortDropdown" onchange="handleSortChange(this.value)" class="bg-white border-none text-purple-900 font-black text-sm p-3 rounded-xl shadow-sm outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer min-w-[180px]">
+                        <option value="student_id_asc">ID (Lowest First)</option>
+                        <option value="student_id_desc">ID (Highest First)</option>
+                        <option value="name_asc">Name (A-Z)</option>
+                        <option value="name_desc">Name (Z-A)</option>
+                        <option value="risk_level_desc">Risk (Highest First)</option>
+                        <option value="risk_level_asc">Risk (Lowest First)</option>
+                        <option value="risk_score_desc">Score (Highest First)</option>
+                        <option value="risk_score_asc">Score (Lowest First)</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="border-b-2 border-purple-100">
-                            <th class="py-4 px-4 font-black text-purple-900 uppercase text-sm">ID</th>
-                            <th class="py-4 px-4 font-black text-purple-900 uppercase text-sm">Name</th>
-                            <th class="py-4 px-4 font-black text-purple-900 uppercase text-sm">Grade</th>
-                            <th class="py-4 px-4 font-black text-purple-900 uppercase text-sm">Risk Level</th>
-                            <th class="py-4 px-4 font-black text-purple-900 uppercase text-sm">Score</th>
-                            <th class="py-4 px-4 font-black text-purple-900 uppercase text-sm">Action</th>
+                    <thead class="bg-gradient-to-r from-purple-900 to-indigo-900 text-white">
+                        <tr>
+                            <th class="py-5 px-6 font-black uppercase text-xs tracking-widest border-b border-white/10 rounded-tl-xl">ID</th>
+                            <th class="py-5 px-6 font-black uppercase text-xs tracking-widest border-b border-white/10">Name</th>
+                            <th class="py-5 px-6 font-black uppercase text-xs tracking-widest border-b border-white/10">Grade</th>
+                            <th class="py-5 px-6 font-black uppercase text-xs tracking-widest border-b border-white/10">Risk Level</th>
+                            <th class="py-5 px-6 font-black uppercase text-xs tracking-widest border-b border-white/10">Score</th>
+                            <th class="py-5 px-6 font-black uppercase text-xs tracking-widest border-b border-white/10 rounded-tr-xl text-center">Action</th>
                         </tr>
                     </thead>
-                    <tbody id="studentTableBody">
+                    <tbody id="studentTableBody" class="divide-y divide-purple-50">
                         <!-- Data will be injected here -->
                         <tr>
                             <td colspan="6" class="py-8 text-center text-gray-500 font-bold italic">Loading student data...</td>
