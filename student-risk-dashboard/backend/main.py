@@ -127,7 +127,7 @@ def get_students(risk_level: str = None, grade_class: str = None, attendance: st
             students = [s for s in students if s.attendance_pct > 90]
             
     return students
-
+    
 @app.get("/api/students/{id}")
 def get_student_detail(id: int, db: Session = Depends(get_db)):
     student = db.query(Student).filter(Student.id == id).first()
