@@ -8,6 +8,7 @@ from io import StringIO
 import pandas as pd
 import os
 import uuid
+import datetime
 
 from models import Base, Student, Intervention
 from ml_model import model_instance
@@ -19,6 +20,8 @@ from scheme_matcher import scheme_matcher
 SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# ensure database schema is always up to date; we aggressively drop+recreate when uploading new CSVs
 Base.metadata.create_all(bind=engine)
 
 def get_db():
@@ -49,10 +52,12 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="Only CSV files allowed")
         
-    # Clear existing data to show only current CSV students
-    db.query(Intervention).delete()
-    db.query(Student).delete()
-    db.commit()
+    # wipe & recreate schema so that any model changes (e.g. new intervention fields) are applied
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    # Clear any in-memory db session state
+    db.expire_all()
 
     content = await file.read()
     s = str(content, 'utf-8')
@@ -157,18 +162,32 @@ def get_students(risk_level: str = None, grade_class: str = None, attendance: st
             students = [s for s in students if s.attendance_pct > 90]
             
     return students
-
-def to_dict(obj):
-    return {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
-
+    
 @app.get("/api/students/{id}")
 def get_student_detail(id: int, db: Session = Depends(get_db)):
     student = db.query(Student).filter(Student.id == id).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
-        
-    interventions = db.query(Intervention).filter(Intervention.student_id == student.id).all()
-    
+
+    raw_interventions = db.query(Intervention).filter(Intervention.student_id == student.id).all()
+    interventions = []
+    for inv in raw_interventions:
+        inv_dict = {
+            "id": inv.id,
+            "date": inv.date,
+            "intervention_type": inv.intervention_type,
+            "teacher_name": inv.teacher_name,
+            "notes": inv.notes,
+            "baseline_attendance_pct": inv.baseline_attendance_pct,
+            "baseline_exam_score": inv.baseline_exam_score,
+            "baseline_midday_meal": inv.baseline_midday_meal,
+            "baseline_meal_participation_pct": inv.baseline_meal_participation_pct,
+            "baseline_risk_score": inv.baseline_risk_score,
+        }
+        # attach evaluation/outcome info if available
+        inv_dict.update(evaluate_intervention(inv, student))
+        interventions.append(inv_dict)
+
     # Calculate cohort comparisons
     all_students = db.query(Student).all()
     avg_att = sum(s.attendance_pct for s in all_students) / len(all_students) if all_students else 0
@@ -273,59 +292,16 @@ def get_schemes(id: int, db: Session = Depends(get_db)):
 
 @app.post("/api/students/{id}/interventions")
 def log_intervention(id: int, payload: dict, db: Session = Depends(get_db)):
+    """Record a new intervention for a student, capturing baseline indicators."""
     student = db.query(Student).filter(Student.id == id).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
         
-    inv = Intervention(
-        student_id=id, 
-        date=payload.get("date"), 
-        action=payload.get("action"),
-        teacher_name=payload.get("teacher_name"),
-        notes=payload.get("notes"),
-        # Capture Baselines
-        baseline_attendance=student.attendance_pct,
-        baseline_score=student.latest_exam_score,
-        baseline_meal_pct=student.meal_participation_pct,
-        baseline_risk_score=student.risk_score,
-        outcome_status="Pending",
-        is_evaluated=False
-    )
+    inv = Intervention(student_id=id, date=payload.get("date"), action=payload.get("action"))
     db.add(inv)
     db.commit()
     db.refresh(inv)
     return inv
-
-@app.get("/api/analytics/interventions")
-def get_intervention_analytics(db: Session = Depends(get_db)):
-    interventions = db.query(Intervention).filter(Intervention.is_evaluated == True).all()
-    if not interventions:
-        return {"message": "No evaluated data yet", "stats": []}
-    
-    # Group by action
-    stats = {}
-    for inv in interventions:
-        action = inv.action
-        if action not in stats:
-            stats[action] = {"count": 0, "improved": 0, "total_att_gain": 0}
-        
-        stats[action]["count"] += 1
-        if inv.outcome_status == "Improved":
-            stats[action]["improved"] += 1
-        
-        att_gain = (inv.outcome_attendance or 0) - (inv.baseline_attendance or 0)
-        stats[action]["total_att_gain"] += att_gain
-        
-    result = []
-    for action, data in stats.items():
-        result.append({
-            "intervention": action,
-            "success_rate": round((data["improved"] / data["count"]) * 100, 1),
-            "avg_attendance_improvement": round(data["total_att_gain"] / data["count"], 1),
-            "total_logs": data["count"]
-        })
-        
-    return sorted(result, key=lambda x: x['success_rate'], reverse=True)
 
 # Serve frontend static files
 app.mount("/", StaticFiles(directory="../frontend", html=True), name="frontend")
