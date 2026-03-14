@@ -1,8 +1,18 @@
+import pytest
 import requests
 
+@pytest.mark.parametrize(
+    "student_id,language",
+    [
+        (1, "Tamil"),
+        (2, "English"),
+        (1, "Hindi"),
+    ],
+)
 def test_communication(student_id, language):
     url = f"http://localhost:8000/api/students/{student_id}/parent-communication?language={language}"
     print(f"Testing for Student ID {student_id} in {language}...")
+
     try:
         response = requests.get(url)
         if response.status_code == 200:
@@ -16,6 +26,7 @@ def test_communication(student_id, language):
             print(f"Error: {response.status_code} - {response.text}")
     except Exception as e:
         print(f"Connection failed: {e}")
+
 
 if __name__ == "__main__":
     # Test for a few students and languages
