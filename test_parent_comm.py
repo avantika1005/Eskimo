@@ -1,5 +1,15 @@
 import pytest
 import requests
+from unittest.mock import Mock
+
+
+def _make_response(status_code=200, json_data=None, text=""):
+    resp = Mock()
+    resp.status_code = status_code
+    resp.text = text
+    resp.json.return_value = json_data or {}
+    return resp
+
 
 @pytest.mark.parametrize(
     "student_id,language",
@@ -9,7 +19,20 @@ import requests
         (1, "Hindi"),
     ],
 )
-def test_communication(student_id, language):
+def test_communication(monkeypatch, capsys, student_id, language):
+    expected_data = {
+        "student_name": f"Student {student_id}",
+        "language": language,
+        "message": "This is a mocked parent communication message.",
+    }
+
+    def fake_get(url):
+        assert f"/students/{student_id}/parent-communication" in url
+        assert f"language={language}" in url
+        return _make_response(200, expected_data)
+
+    monkeypatch.setattr(requests, "get", fake_get)
+
     url = f"http://localhost:8000/api/students/{student_id}/parent-communication?language={language}"
     print(f"Testing for Student ID {student_id} in {language}...")
 
@@ -26,6 +49,11 @@ def test_communication(student_id, language):
             print(f"Error: {response.status_code} - {response.text}")
     except Exception as e:
         print(f"Connection failed: {e}")
+
+    captured = capsys.readouterr()
+    assert f"Student: {expected_data['student_name']}" in captured.out
+    assert f"Language: {expected_data['language']}" in captured.out
+    assert expected_data["message"] in captured.out
 
 
 if __name__ == "__main__":
