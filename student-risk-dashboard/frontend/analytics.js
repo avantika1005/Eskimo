@@ -7,7 +7,7 @@ async function fetchAnalytics() {
         
         const data = await response.json();
         
-        if (data.message === "No evaluated data yet") {
+        if (!data || data.message === "No evaluated data yet" || (Array.isArray(data) && data.length === 0)) {
             showEmptyState();
             return;
         }

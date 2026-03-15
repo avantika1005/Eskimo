@@ -107,7 +107,9 @@ def _generate_mock_explanation(student_name: str, score: int, level: str, top_fa
         
     explanation = f"{student_name}'s risk score is {level.lower()} mainly because of "
     
-    if len(factors_list) == 1:
+    if len(factors_list) == 0:
+        explanation += "overall academic indicators."
+    elif len(factors_list) == 1:
         explanation += f"{factors_list[0].lower()}."
     elif len(factors_list) == 2:
         explanation += f"{factors_list[0].lower()} and {factors_list[1].lower()}."

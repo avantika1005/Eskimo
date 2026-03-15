@@ -329,7 +329,7 @@ def log_intervention(id: int, payload: dict, db: Session = Depends(get_db)):
 def get_intervention_analytics(db: Session = Depends(get_db)):
     interventions = db.query(Intervention).filter(Intervention.is_evaluated == True).all()
     if not interventions:
-        return []
+        return {"message": "No evaluated data yet"}
     
     # Group by action
     stats = {}
@@ -398,7 +398,19 @@ def get_district_heatmap(db: Session = Depends(get_db)):
         d_name = s.district_name
         
         if s_name not in school_metrics:
-            coords = mock_coordinates.get(s_name, {"lat": 13.0, "lng": 80.0}) # Default near Chennai
+            # Deterministic coordinate generation for unknown schools
+            if s_name in mock_coordinates:
+                coords = mock_coordinates[s_name]
+            else:
+                import zlib
+                # Use zlib crc32 for a stable hash across runs
+                h = zlib.crc32(s_name.encode('utf-8'))
+                # Tamil Nadu approx bounds: Lat [8.5, 13.5], Lng [76.5, 80.0]
+                # Scale hash to these ranges
+                lat = 8.5 + (h % 500) / 100.0
+                lng = 76.5 + ((h >> 8) % 350) / 100.0
+                coords = {"lat": lat, "lng": lng}
+                
             school_metrics[s_name] = {
                 "school_name": s_name,
                 "block_name": b_name,
