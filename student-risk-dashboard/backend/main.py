@@ -72,7 +72,7 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
     df = pd.read_csv(data)
     
     # Required columns basic check
-    required_cols = ['Student ID', 'Student Name', 'Class / Grade', 'Attendance Percentage', 
+    required_cols = ['Student ID', 'Student Name', 'School Name', 'Block Name', 'District Name', 'Class / Grade', 'Attendance Percentage', 
                      'Latest Exam Score', 'Previous Exam Score', 'Distance from School (km)', 
                      'Midday Meal Participation (Yes/No)', 'Midday Meal Participation Rate (%)',
                      'Sibling Dropout History (Yes/No)']
