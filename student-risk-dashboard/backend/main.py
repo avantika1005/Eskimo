@@ -467,3 +467,9 @@ def get_district_heatmap(db: Session = Depends(get_db)):
             
     return result
 
+# Serve frontend static files
+frontend_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend"))
+if os.path.exists(frontend_path):
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
+else:
+    print(f"Warning: Frontend path not found at {frontend_path}")

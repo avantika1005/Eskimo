@@ -131,9 +131,13 @@ function loadGeneralInterventions() {
         </div>
     `;
 }
-document.addEventListener("DOMContentLoaded", function(){
+
+function init() {
+    console.log("DEBUG: Initializing app...");
     loadAnalyticsPreview();
     loadGeneralInterventions();
+    
+    // Improved button listener logic
     const buttons = document.querySelectorAll("button");
     
     buttons.forEach(btn => {
@@ -160,4 +164,10 @@ document.addEventListener("DOMContentLoaded", function(){
             });
         }
     });
-});
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+} else {
+    init();
+}
