@@ -1,11 +1,9 @@
-import os
 import sys
+import os
 
-# Ensure the backend directory is in the path
-backend_path = os.path.join(os.path.dirname(__file__), "..", "student-risk-dashboard", "backend")
-sys.path.append(backend_path)
+# Add backend folder to Python path
+sys.path.append(
+    os.path.join(os.path.dirname(__file__), "..", "student-risk-dashboard", "backend")
+)
 
-# Import the FastAPI app from main.py
-from main import app as application
-
-# This exposes the FastAPI app to Vercel
+from main import app
