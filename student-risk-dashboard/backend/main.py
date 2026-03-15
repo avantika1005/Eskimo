@@ -467,6 +467,3 @@ def get_district_heatmap(db: Session = Depends(get_db)):
             
     return result
 
-
-# Serve frontend static files - REMOVED FOR VERCEL
-# Vercel handles static serving via vercel.json rewrites

@@ -8,41 +8,16 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<script src="auth.js"></script>
 </head>
 
 <body class="bg-gradient-to-b from-purple-900 to-purple-300 min-h-screen text-white font-sans">
 
 
-<!-- LOGIN PAGE -->
-
-<div id="loginPage" class="fixed inset-0 flex items-center justify-center bg-gradient-to-b from-purple-900 to-purple-300 z-50">
-
-<div class="bg-white p-10 rounded-2xl shadow-2xl w-96 text-black">
-
-<h2 class="text-3xl font-black mb-6 text-center text-purple-900">ADMIN LOGIN</h2>
-
-<input id="username" type="text" placeholder="Admin ID"
-class="w-full p-3 mb-4 border rounded-lg font-bold">
-
-<input id="password" type="password" placeholder="Password"
-class="w-full p-3 mb-6 border rounded-lg font-bold">
-
-<button onclick="login()"
-class="w-full bg-purple-900 text-white py-3 rounded-lg font-black hover:bg-purple-700">
-LOGIN
-</button>
-
-<p id="error" class="text-red-600 text-center mt-4 font-bold"></p>
-
-</div>
-
-</div>
-
-
 
 <!-- DASHBOARD -->
 
-<div id="dashboard" class="hidden">
+<div id="dashboard">
 
 <header class="p-6 bg-opacity-40 backdrop-blur-md bg-purple-900/30 border-b border-purple-300/20 relative">
 
@@ -89,7 +64,7 @@ Manage Users
 View Logs
 </a>
 
-<a href="#" onclick="logout()" class="block px-6 py-3 text-red-700 hover:bg-red-50 font-bold">
+<a href="#" onclick="auth.logout()" class="block px-6 py-3 text-red-700 hover:bg-red-50 font-bold">
 Logout
 </a>
 
@@ -290,37 +265,6 @@ Close
 
 
 <script>
-
-/* LOGIN */
-
-function login(){
-
-let user=document.getElementById("username").value;
-let pass=document.getElementById("password").value;
-
-if(user=="admin" && pass=="1234"){
-
-document.getElementById("loginPage").style.display="none";
-document.getElementById("dashboard").classList.remove("hidden");
-
-}else{
-
-document.getElementById("error").innerText="Invalid Login";
-
-}
-
-}
-
-
-/* LOGOUT */
-
-function logout(){
-
-document.getElementById("dashboard").classList.add("hidden");
-document.getElementById("loginPage").style.display="flex";
-
-}
-
 
 /* ADMIN DROPDOWN */
 

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login - AI Early Warning System</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="index.css">
+<script src="auth.js"></script>
+</head>
+<body class="bg-gradient-to-b from-purple-900 to-purple-300 min-h-screen text-white font-sans flex items-center justify-center">
+
+<div id="loginPage" class="bg-white p-10 rounded-2xl shadow-2xl w-96 text-black border-t-8 border-purple-700">
+    <div class="text-center mb-8">
+        <h2 class="text-3xl font-black text-purple-900 uppercase tracking-tight">Admin Login</h2>
+        <p class="text-gray-400 font-bold text-xs uppercase tracking-widest mt-2">Eskimo Early Warning System</p>
+    </div>
+
+    <div class="space-y-4">
+        <div>
+            <label class="block text-xs font-black text-gray-400 uppercase mb-2">Admin ID</label>
+            <input id="username" type="text" placeholder="Enter Admin ID"
+                class="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold focus:border-purple-500 outline-none transition-all text-purple-900">
+        </div>
+
+        <div>
+            <label class="block text-xs font-black text-gray-400 uppercase mb-2">Password</label>
+            <input id="password" type="password" placeholder="••••••••"
+                class="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold focus:border-purple-500 outline-none transition-all text-purple-900">
+        </div>
+
+        <button onclick="auth.login(document.getElementById('username').value, document.getElementById('password').value)"
+            class="w-full bg-purple-900 text-white py-4 rounded-xl font-black hover:bg-purple-700 shadow-xl transform hover:scale-[1.02] transition-all uppercase tracking-widest mt-4">
+            LOGIN
+        </button>
+
+        <p id="error" class="text-red-600 text-center font-bold text-sm h-5"></p>
+    </div>
+
+    <div class="mt-10 pt-6 border-t border-gray-100 text-center">
+        <p class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">
+            KMHSC • 2026 © Internal Use Only
+        </p>
+    </div>
+</div>
+
+</body>
+</html>
