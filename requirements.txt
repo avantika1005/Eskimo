@@ -6,3 +6,5 @@ pandas
 python-dotenv
 python-multipart
 openai
+numpy
+joblib
