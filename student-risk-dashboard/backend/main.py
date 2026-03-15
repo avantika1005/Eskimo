@@ -48,7 +48,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+def parse_bool(value):
+    val = str(value).strip().lower()
 
+    if val in ["true", "yes", "1"]:
+        return True
+    elif val in ["false", "no", "0"]:
+        return False
+    else:
+        return False
 # API Endpoints
 @app.get("/api/ping")
 def ping():
@@ -79,14 +87,7 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
                      
     if not all(col in df.columns for col in required_cols):
         raise HTTPException(status_code=400, detail="Missing required columns in CSV")
-def parse_bool(value):
-    val = str(value).strip().lower()
-    if val in ['true', 'yes', '1']:
-        return True
-    elif val in ['false', 'no', '0']:
-        return False
-    else:
-        return False
+
     
     for index, row in df.iterrows():
         school_name = row.get('School Name', 'Kanchipuram Govt Model School')
